@@ -1,0 +1,42 @@
+- project:
+    check:
+      jobs:
+        - sf-rpm-build
+        - shake-factory-test
+        - tox-docs:
+            nodeset: python-latest-pod
+            vars:
+              sphinx_build_dir: build
+        - tox-linters:
+            nodeset: python-latest-pod
+        - tox-py36:
+            nodeset: python-latest-pod
+    gate:
+      jobs:
+        - wait-for-changes-ahead:
+            dependencies:
+              - sf-rpm-build
+              - shake-factory-test
+              - tox-docs
+              - tox-linters
+              - tox-py36
+        - sf-rpm-publish:
+            dependencies:
+              - wait-for-changes-ahead
+        - sf-rpm-build
+        - shake-factory-test
+        - tox-docs:
+            nodeset: python-latest-pod
+            vars:
+              sphinx_build_dir: build
+        - tox-linters:
+            nodeset: python-latest-pod
+        - tox-py36:
+            nodeset: python-latest-pod
+    post:
+      jobs:
+        - shake-factory-publish-docs
+    release:
+      jobs:
+        - sf-rpm-publish
+        - upload-pypi
