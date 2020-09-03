@@ -29,6 +29,7 @@ PBR_VERSION=%{version} %{__python3} setup.py install --skip-build --root %{build
 
 %files
 %{python3_sitelib}/*
+%{_bindir}/*
 
 %changelog
 * Wed Sep  2 2020 Tristan Cacqueray <tdecacqu@redhat.com> - 0.0.1-1
