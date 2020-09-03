@@ -18,4 +18,7 @@ setup(
     name='pynotedb',
     version='0.1.0',
     packages=['pynotedb'],
+    entry_points = {
+        'console_scripts': ['pynotedb=pynotedb:main']
+    }
 )
