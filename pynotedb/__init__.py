@@ -117,8 +117,9 @@ def get_group_id(all_users: Clone, group_name: str) -> Optional[str]:
         return group[0][0]
     return None
 
-def add_account_external_id(all_users: Clone, username: str, account_id: str) -> None:
-    """Create an account external id, the clone must be checkout on the external id ref"""
+def add_account_external_id(all_users: ExternalIdsClone, username: str, account_id: str) -> None:
+    """Create an account external id"""
+    fetch_checkout(clone, Branch("ids"), meta_external_ids)
     (all_users / sha1sum("username:" + username)).write_text("\n".join([
         "[externalId \"username:" + username + "\"]",
         "\taccountId = " + account_id,
