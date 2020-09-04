@@ -15,7 +15,7 @@
 import argparse
 from sys import argv
 from pathlib import Path
-from typing import Callable, List, NewType, Optional
+from typing import Callable, List, NewType, Optional, Tuple
 from pynotedb.utils import execute, ls, sha1sum, try_action
 
 
@@ -23,6 +23,7 @@ from pynotedb.utils import execute, ls, sha1sum, try_action
 Email = NewType('Email', str)
 PubKey = NewType('PubKey', str)
 Url = NewType('Url', str)
+Uuid = NewType('Uuid', str)
 Clone = NewType('Clone', Path)
 Branch = NewType('Branch', str)
 Ref = NewType('Ref', str)
@@ -31,6 +32,7 @@ ExternalScheme = NewType('ExternalScheme', str)
 fetch_head = Ref('FETCH_HEAD')
 meta_config = Ref('refs/meta/config')
 meta_external_ids = Ref('refs/meta/external-ids')
+meta_group_names = Ref('refs/meta/group-names')
 scheme_gerrit = ExternalScheme('gerrit')
 scheme_username = ExternalScheme('username')
 
@@ -97,7 +99,7 @@ def mk_user_ref(user: str) -> Ref:
     """
     return mk_ref("users")(user)
 
-def mk_group_ref(group: str) -> Ref:
+def mk_group_ref(group: Uuid) -> Ref:
     """Create a group ref"""
     return mk_ref("groups")(group)
 
@@ -110,14 +112,37 @@ def invert_ref_id(ref: Ref) -> Ref:
     r, g, _, i = ref.split('/')
     return Ref('/'.join([r, g, i[:2], i]))
 
-def get_group_id(all_users: Clone, group_name: str) -> Optional[str]:
-    fetch_checkout(all_users, Branch("meta_config"), meta_config)
-    groups = (all_users / "groups").read_text()
-    group = list(
-        filter(lambda s: s and s[-1] == group_name,
-               map(str.split, groups.split("\n"))))
-    if len(group) == 1:
-        return group[0][0]
+def read_items(lines: List[str]) -> List[Tuple[str, str]]:
+    """Read key values of git config file
+
+    >>> read_items(["[group]", "  name = un name=avec ", "uuid=4242"])
+    [('name', 'un name=avec'), ('uuid', '4242')]
+    """
+    return [(elems[0], elems[1])
+            for elems in map(lambda s: list(map(str.strip, s.split("=", 1))), lines)
+            if len(elems) == 2]
+
+def read_group_name_uid(group_file: Path) -> Optional[Tuple[str, Uuid]]:
+    """Return the name and uuid of a group config file"""
+    name, uid = None, None
+    for k, v in read_items(group_file.read_text().split('\n')):
+        if k == "name":
+            name = v
+        elif k == "uuid":
+            uid = v
+    if name and uid:
+        return (name, Uuid(uid))
+    return None
+
+def get_group_id(all_users: Clone, group_name: str) -> Optional[Tuple[Path, Uuid]]:
+    """Return the file path and uid of a group name"""
+    fetch_checkout(all_users, Branch("group_names"), meta_group_names)
+    for fn in filter(lambda fp: fp.is_file(), ls(all_users)):
+        group_info = read_group_name_uid(fn)
+        if group_info:
+            name, uid = group_info
+            if name == group_name:
+                return (fn, uid)
     return None
 
 def write_external_id_file(all_users: Clone, scheme: ExternalScheme, username: str, account_id: str) -> None:
@@ -140,6 +165,15 @@ def add_account_external_id(all_users: Clone, username: str, account_id: str) ->
     commit_and_push(
         all_users, "Add externalId for user " + username, meta_external_ids)
 
+def delete_group(all_users: Clone, group: str) -> None:
+    group_path_id = get_group_id(all_users, group)
+    if not group_path_id:
+        raise RuntimeError("%s: group doesn't exists!" % group)
+    group_path, group_id = group_path_id
+    git(all_users, ["push", "--delete", "origin", invert_ref_id(mk_group_ref(group_id))])
+    git(all_users, ["rm", str(group_path)])
+    commit_and_push(all_users, "Remove group " + group, meta_group_names)
+
 def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Url) -> None:
     """Ensure the admin user is created"""
     all_users = mk_clone(all_users_url)
@@ -149,7 +183,7 @@ def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Url) -> None:
         admin_group_id = get_group_id(all_users, "Administrators")
         if not admin_group_id:
             raise RuntimeError("%s: Administrators group doesn't exists!" % all_users)
-        admin_group_ref = mk_group_ref(admin_group_id)
+        admin_group_ref = mk_group_ref(admin_group_id[1])
         if not try_action(lambda: fetch_checkout(all_users, Branch("group_admin"), admin_group_ref)):
             # For some reason, group ref can be AB/ABCD
             admin_group_ref = invert_ref_id(admin_group_ref)
