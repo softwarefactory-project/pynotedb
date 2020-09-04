@@ -16,7 +16,7 @@ import argparse
 from sys import argv
 from pathlib import Path
 from typing import Callable, List, NewType, Optional
-from pynotedb.utils import execute, sha1sum, try_action
+from pynotedb.utils import execute, ls, sha1sum, try_action
 
 
 # Create new types to avoid mis-usage
@@ -181,17 +181,49 @@ def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Url) -> None:
         git(all_users, ["add", "account.config", "authorized_keys"])
         commit_and_push(all_users, "Initialize admin user", admin_ref)
 
+def fix_cauth_external_id(filename: Path) -> None:
+    filecontent = filename.read_text()
+    is_username = [fileline
+                   for fileline in filecontent.split('\n')
+                   if fileline.startswith("[externalId \"username:")]
+    if is_username:
+        extid = is_username[0].split("\"")[1]
+        _scheme, name = extid.split(":", 1)
+        newfilename = filename.parent / sha1sum("gerrit:" + name)
+        newfilename.write_text(filecontent.replace(
+            "[externalId \"username:",
+            "[externalId \"gerrit:"))
+
+def migrate(all_projects_url: Url, all_users_url: Url) -> None:
+    """Migrate software factory notedb data from gerrit 2.x"""
+    # Ensure admin can push notedb ref
+    all_projects = mk_clone(all_projects_url)
+    git(all_projects, ["config", "-f", "project.config", "access.refs/*.push",
+                       "group Administrators", ".*group Administrators"])
+    commit_and_push(all_projects, "Enable admin to push refs", meta_config)
+    # Update externalId to use `gerrit` scheme instead of `username`
+    all_users = mk_clone(all_users_url)
+    fetch_checkout(all_users, Branch("external_ids"), meta_external_ids)
+    list(map(fix_cauth_external_id, filter(lambda fp: fp.is_file(), ls(all_users))))
+    git(all_users, ["add", "."])
+    commit_and_push(all_users, "Update external id to gerrit scheme", meta_external_ids)
+
 def main() -> None:
     """The CLI entrypoint"""
     def usage(argv: List[str]) -> argparse.Namespace:
         parser = argparse.ArgumentParser(description="notedb-tools")
-        parser.add_argument("action", choices=["create-admin-user"])
+        parser.add_argument("action", choices=["create-admin-user", "migrate"])
         parser.add_argument("--fqdn", help="The FDQN for admin email")
         parser.add_argument("--pubkey", help="SSH public key content")
         parser.add_argument("--all-users", help="URL of the All-Users project")
+        parser.add_argument("--all-projects", help="URL of the All-Projects project")
         return parser.parse_args(argv)
     args = usage(argv[1:])
     if args.action == "create-admin-user":
         if not args.fqdn or not args.pubkey or not args.all_users:
             raise RuntimeError("create-admin-user: needs fqdn, pubkey and all-users argument")
         create_admin_user(Email("admin@" + args.fqdn), PubKey(args.pubkey), Url(args.all_users))
+    elif args.action == "migrate":
+        if not args.all_projects or not args.all_users:
+            raise RuntimeError("migrate: needs all-projects and all-users argument")
+        migrate(Url(args.all_projects), Url(args.all_users))
