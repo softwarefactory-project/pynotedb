@@ -13,8 +13,9 @@
 # under the License.
 
 import subprocess
+import os
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Iterator
 from hashlib import sha1
 
 
@@ -42,6 +43,10 @@ def try_action(action: Callable[[], None]) -> bool:
         return True
     except:
         return False
+
+def ls(root: Path) -> Iterator[Path]:
+    """List a directory and return absolute path"""
+    return map(lambda fn: root / fn, os.listdir(root))
 
 def sha1sum(strdata: str) -> str:
     """Create a sha1
