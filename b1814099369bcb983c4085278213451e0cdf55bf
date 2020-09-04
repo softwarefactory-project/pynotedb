@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "b3809cc6_6825dbf9",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2020-09-04T14:48:48Z",
+      "side": 1,
+      "message": "you are using \"clone\" as var name elsewhere.",
+      "range": {
+        "startLine": 61,
+        "startChar": 20,
+        "endLine": 61,
+        "endChar": 24
+      },
+      "revId": "b1814099369bcb983c4085278213451e0cdf55bf",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c95612af_607a7d47",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2020-09-04T14:48:48Z",
+      "side": 1,
+      "message": "this function will crash if refname is \"\"",
+      "revId": "b1814099369bcb983c4085278213451e0cdf55bf",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "f45697aa_8a065aa3",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 188,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2020-09-04T14:48:48Z",
+      "side": 1,
+      "message": "hum lot of fun ...",
+      "range": {
+        "startLine": 188,
+        "startChar": 69,
+        "endLine": 188,
+        "endChar": 76
+      },
+      "revId": "b1814099369bcb983c4085278213451e0cdf55bf",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    }
+  ]
+}
