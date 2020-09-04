@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "7a91e70f_7124aa38",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 61,
+      "author": {
+        "id": 7
+      },
+      "writtenOn": "2020-09-04T17:27:42Z",
+      "side": 1,
+      "message": "good catch, i\u0027ll normalize that.",
+      "parentUuid": "b3809cc6_6825dbf9",
+      "range": {
+        "startLine": 61,
+        "startChar": 20,
+        "endLine": 61,
+        "endChar": 24
+      },
+      "revId": "b1814099369bcb983c4085278213451e0cdf55bf",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "c95612af_607a7d47",
         "filename": "pynotedb/__init__.py",
         "patchSetId": 3
@@ -42,6 +66,24 @@
     },
     {
       "key": {
+        "uuid": "f712af50_05f0dcb7",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 73,
+      "author": {
+        "id": 7
+      },
+      "writtenOn": "2020-09-04T17:27:42Z",
+      "side": 1,
+      "message": "i think only doc can help here, there is no [NonEmpty](https://hackage.haskell.org/package/base-4.14.0.0/docs/Data-List-NonEmpty.html) data type in python :-)",
+      "parentUuid": "c95612af_607a7d47",
+      "revId": "b1814099369bcb983c4085278213451e0cdf55bf",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "f45697aa_8a065aa3",
         "filename": "pynotedb/__init__.py",
         "patchSetId": 3
@@ -53,6 +95,30 @@
       "writtenOn": "2020-09-04T14:48:48Z",
       "side": 1,
       "message": "hum lot of fun ...",
+      "range": {
+        "startLine": 188,
+        "startChar": 69,
+        "endLine": 188,
+        "endChar": 76
+      },
+      "revId": "b1814099369bcb983c4085278213451e0cdf55bf",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "d7771982_ba6c8ba7",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 188,
+      "author": {
+        "id": 7
+      },
+      "writtenOn": "2020-09-04T17:27:42Z",
+      "side": 1,
+      "message": "yeah, let see what breaks after upgrade :-)",
+      "parentUuid": "f45697aa_8a065aa3",
       "range": {
         "startLine": 188,
         "startChar": 69,
