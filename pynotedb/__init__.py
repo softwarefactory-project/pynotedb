@@ -132,6 +132,18 @@ def add_account_external_id(all_users: Clone, username: str, account_id: str) ->
     commit_and_push(
         all_users, "Add externalId for user " + username, meta_external_ids)
 
+def delete_group(all_users: Clone, group: str) -> None:
+    group_id = get_group_id(all_users, group)
+    if not group_id:
+        raise RuntimeError("%s: group doesn't exists!" % group)
+    group_file = (all_users / "groups")
+    group_file.write_text("\n".join([
+        l for l in group_file.read_text().split('\n')
+        if l.split() and l.split()[-1] != group
+    ] + [""]))
+    commit_and_push(all_users, "Remove group " + group, meta_config)
+    git(all_users, ["push", "--delete", "origin", mk_group_ref(group)])
+
 def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Url) -> None:
     """Ensure the admin user is created"""
     all_users = mk_clone(all_users_url)
