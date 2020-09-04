@@ -24,6 +24,7 @@ Email = NewType('Email', str)
 PubKey = NewType('PubKey', str)
 Url = NewType('Url', str)
 Clone = NewType('Clone', Path)
+ExternalIdsClone = NewType('ExternalIdsClone', Clone)
 Branch = NewType('Branch', str)
 Ref = NewType('Ref', str)
 
@@ -57,6 +58,11 @@ def fetch_checkout(clone: Clone, branch: Branch, ref: Ref) -> None:
     """fetch a ref and check it out"""
     fetch(clone, ref)
     checkout(clone, branch, fetch_head)
+
+def mk_externalids_clone(all_users: Url) -> ExternalIdsClone:
+    clone = mk_clone(all_users)
+    fetch_checkout(clone, Branch("ids"), meta_external_ids)
+    return ExternalIdsClone(clone)
 
 def commit_and_push(clone: Clone, message: str, ref: Ref) -> None:
     try_action(lambda: git(clone, ["commit", "-a", "-m", message]))
@@ -117,8 +123,8 @@ def get_group_id(all_users: Clone, group_name: str) -> Optional[str]:
         return group[0][0]
     return None
 
-def add_account_external_id(all_users: Clone, username: str, account_id: str) -> None:
-    """Create an account external id, the clone must be checkout on the external id ref"""
+def add_account_external_id(all_users: ExternalIdsClone, username: str, account_id: str) -> None:
+    """Create an account external id"""
     (all_users / sha1sum("username:" + username)).write_text("\n".join([
         "[externalId \"username:" + username + "\"]",
         "\taccountId = " + account_id,
