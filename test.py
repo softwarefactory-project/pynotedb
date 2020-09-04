@@ -40,10 +40,27 @@ def create_all_users(test_repo):
     execute(["cp", ".git/refs/meta/config", ".git/refs/meta/external-ids"], test_repo)
     (test_repo / ".git/refs/groups/12").mkdir(parents=True)
     execute(["cp", ".git/refs/meta/config", ".git/refs/groups/12/12345"], test_repo)
+    pynotedb.new_orphan(test_repo, "group_names")
+    (test_repo / "4243").write_text("\n".join(["[group]", "  name = test group", "  uuid = 54321", ""]))
+    (test_repo / "1245").write_text("\n".join(["[group]", "  name = Administrators", "  uuid = 12345", ""]))
+    pynotedb.git(test_repo, ["add", "4243", "1245"])
+    pynotedb.git(test_repo, ["commit", "-m", "init test group"])
+    execute(["mv", ".git/refs/heads/group_names", ".git/refs/meta/group-names"], test_repo)
+    (test_repo / ".git/refs/groups/54").mkdir(parents=True)
+    execute(["cp", ".git/refs/groups/12/12345", ".git/refs/groups/54/54321"], test_repo)
 
 
 def check_admin_user_created(test_repo):
     pynotedb.git(test_repo, ["ls-tree", "refs/users/01/1"])
+
+
+def check_delete_group(test_repo, group_name):
+    pynotedb.delete_group(test_repo, group_name)
+    try:
+        pynotedb.delete_group(test_repo, group_name)
+    except RuntimeError:
+        return
+    raise RuntimeError("Second %s group deletion should have failed" % group_name)
 
 
 class TestPyNoteDb(unittest.TestCase):
@@ -62,6 +79,11 @@ class TestPyNoteDb(unittest.TestCase):
         repo = pynotedb.mk_clone(str(self.test_repo))
         pynotedb.fetch_checkout(repo, "extids", "refs/meta/external-ids")
         pynotedb.add_account_external_id(repo, "john", "42")
+
+    def test_delete_group(self):
+        repo = pynotedb.mk_clone(str(self.test_repo))
+        check_delete_group(repo, "test group")
+
 
 if __name__ == '__main__':
     unittest.main()
