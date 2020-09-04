@@ -1,0 +1,9 @@
+Code-Review+2: Nicolas HICHER <nhicher@redhat.com>
+Code-Review+2: Fabien Boucher <fboucher@redhat.com>
+Workflow+1: Fabien Boucher <fboucher@redhat.com>
+Verified+2: Zuul CI <zuul@softwarefactory-project.io>
+Submitted-by: Zuul CI <zuul@softwarefactory-project.io>
+Submitted-at: Fri, 04 Sep 2020 15:04:07 +0000
+Reviewed-on: https://softwarefactory-project.io/r/19395
+Project: software-factory/pynotedb
+Branch: refs/heads/master
