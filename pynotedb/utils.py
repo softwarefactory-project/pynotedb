@@ -15,20 +15,39 @@
 import subprocess
 import os
 from pathlib import Path
-from typing import Callable, List, Optional, Iterator
+from typing import Any, Callable, List, Optional, Iterator, TYPE_CHECKING
 from hashlib import sha1
 
 
+if TYPE_CHECKING:
+    Proc = subprocess.Popen[Any]
+else:
+    Proc = Any
+
+def wait_popen(proc: Proc) -> None:
+    if proc.wait():
+        raise RuntimeError("%s: failed" % ' '.join(map(str, proc.args)))
+
 def execute(argv: List[str], cwd: Optional[Path] = None) -> None:
-    """Returns command output, raise an exception if the command failed
+    """Execute command, raise an exception if it fails
 
     >>> execute(["ls", "/fail"])
     Traceback (most recent call last):
     ...
     RuntimeError: ls /fail: failed
     """
-    if subprocess.Popen(argv, cwd=cwd).wait():
-        raise RuntimeError("%s: failed" % ' '.join(argv))
+    wait_popen(subprocess.Popen(argv, cwd=cwd))
+
+def pread(argv: List[str], cwd: Optional[Path] = None) -> bytes:
+    """Return command outputs, raise an exception if it fails
+
+    >>> pread(["dd", "if=/dev/zero", "bs=2", "count=1"])
+    b'\\x00\\x00'
+    """
+    proc = subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE)
+    stdout, _ = proc.communicate()
+    wait_popen(proc)
+    return stdout
 
 def try_action(action: Callable[[], None]) -> bool:
     """Return True if an action succeed, otherwise false

@@ -15,8 +15,8 @@
 import argparse
 from sys import argv
 from pathlib import Path
-from typing import Callable, List, NewType, Optional, Tuple
-from pynotedb.utils import execute, ls, sha1sum, try_action
+from typing import Callable, List, Iterator, NewType, Optional, Tuple
+from pynotedb.utils import execute, ls, pread, sha1sum, try_action
 
 
 # Create new types to avoid mis-usage
@@ -49,6 +49,10 @@ def mk_clone(url: Url) -> Clone:
 def git(clone: Clone, args: List[str]) -> None:
     """A convenient wrapper around git commands"""
     execute(["git"] + args, cwd=clone)
+
+def git_read(clone: Clone, args: List[str]) -> str:
+    """A convenient reader around git commands"""
+    return pread(["git"] + args, cwd=clone).decode('utf-8')
 
 def fetch(clone: Clone, ref: Ref) -> None:
     """fetch a ref"""
@@ -134,6 +138,12 @@ def read_group_name_uid(group_file: Path) -> Optional[Tuple[str, Uuid]]:
         return (name, Uuid(uid))
     return None
 
+def read_user_name(user_file: Path) -> Optional[str]:
+    for k, v in read_items(user_file.read_text().split('\n')):
+        if k == 'fullName':
+            return v
+    return None
+
 def get_group_id(all_users: Clone, group_name: str) -> Optional[Tuple[Path, Uuid]]:
     """Return the file path and uid of a group name"""
     fetch_checkout(all_users, Branch("group_names"), meta_group_names)
@@ -143,6 +153,24 @@ def get_group_id(all_users: Clone, group_name: str) -> Optional[Tuple[Path, Uuid
             name, uid = group_info
             if name == group_name:
                 return (fn, uid)
+    return None
+
+def get_user_id(user_ref: Ref) -> str:
+    return user_ref.split('/')[-1]
+
+def get_users_ref(all_users: Clone) -> Iterator[Ref]:
+    """Return the list of user git refs"""
+    return map(Ref,
+               filter(lambda s: s.startswith("refs/users/") and s != "refs/users/self",
+                      map(lambda s: s and s.split()[-1],
+                          git_read(all_users, ["ls-remote"]).split('\n'))))
+
+def get_user_ref(all_users: Clone, user: str) -> Optional[Ref]:
+    """Return the user git ref"""
+    for user_ref in get_users_ref(all_users):
+        fetch_checkout(all_users, Branch("user_" + get_user_id(user_ref)), user_ref)
+        if read_user_name(all_users / "account.config") == user:
+            return user_ref
     return None
 
 def write_external_id_file(all_users: Clone, scheme: ExternalScheme, username: str, account_id: str) -> None:
@@ -173,6 +201,13 @@ def delete_group(all_users: Clone, group: str) -> None:
     git(all_users, ["push", "--delete", "origin", invert_ref_id(mk_group_ref(group_id))])
     git(all_users, ["rm", str(group_path)])
     commit_and_push(all_users, "Remove group " + group, meta_group_names)
+
+def delete_user(all_users: Clone, user: str) -> None:
+    user_ref = get_user_ref(all_users, user)
+    if not user_ref:
+        raise RuntimeError("%s: user doesn't exists!" % user)
+    # TODO: delete group membership too?
+    git(all_users, ["push", "--delete", "origin", user_ref])
 
 def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Url) -> None:
     """Ensure the admin user is created"""
@@ -255,7 +290,7 @@ def main() -> None:
     """The CLI entrypoint"""
     def usage(argv: List[str]) -> argparse.Namespace:
         parser = argparse.ArgumentParser(description="notedb-tools")
-        parser.add_argument("action", choices=["create-admin-user", "migrate", "delete-group"])
+        parser.add_argument("action", choices=["create-admin-user", "migrate", "delete-group", "delete-user"])
         parser.add_argument("--email", help="The user email address")
         parser.add_argument("--pubkey", help="The user SSH public key content")
         parser.add_argument("--all-users", help="URL of the All-Users project")
@@ -271,7 +306,11 @@ def main() -> None:
         if not args.all_projects or not args.all_users:
             raise RuntimeError("migrate: needs all-projects and all-users argument")
         migrate(Url(args.all_projects), Url(args.all_users))
-    elif args.action == "delete-group":
+    elif args.action in ("delete-group", "delete-user"):
         if not args.all_users or not args.name:
-            raise RuntimeError("delete-group: needs all-users and name argument")
-        delete_group(mk_clone(Url(args.all_users)), args.name)
+            raise RuntimeError("%s: needs all-users and name argument" % args.action)
+        all_users = mk_clone(Url(args.all_users))
+        if args.action == "delete-group":
+            delete_group(all_users, args.name)
+        elif args.action == "delete-user":
+            delete_user(all_users, args.name)
