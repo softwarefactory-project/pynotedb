@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6f1c6e6b_9aeab14c",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 340,
+      "author": {
+        "id": 7
+      },
+      "writtenOn": "2020-09-16T12:08:51Z",
+      "side": 1,
+      "message": "This block can be moved up one indentation.",
+      "range": {
+        "startLine": 331,
+        "startChar": 0,
+        "endLine": 340,
+        "endChar": 57
+      },
+      "revId": "573b41dac8e35cdeb5782838527e7616840e6b5f",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    }
+  ]
+}
