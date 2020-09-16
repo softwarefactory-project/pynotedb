@@ -21,6 +21,7 @@ from pynotedb.utils import execute, ls, pread, sha1sum, try_action
 
 # Create new types to avoid mis-usage
 Email = NewType('Email', str)
+Username = NewType('Username', str)
 PubKey = NewType('PubKey', str)
 Url = NewType('Url', str)
 Uuid = NewType('Uuid', str)
@@ -211,14 +212,15 @@ def ext_id_match(headers: List[str], ext_id_file: Path) -> bool:
     ext_id_file_content = ext_id_file.read_text().split('\n')
     return any(filter(lambda h: h in ext_id_file_content, headers))
 
-def delete_user(all_users: Clone, user: str, email: str) -> None:
-    # Remove external id
+def get_user_external_id(all_users: Clone, user: Username, email: Email) -> List[Path]:
     headers = list(map(lambda sn: external_id_header(sn[0], sn[1]),
                        [(scheme_mail, email), (scheme_gerrit, user), (scheme_username, user)]))
-    for user_external_id_file in [
-            ext_id_file
-            for ext_id_file in list_external_ids(all_users)
-            if ext_id_match(headers, ext_id_file)]:
+    return [ext_id_file for ext_id_file in list_external_ids(all_users)
+            if ext_id_match(headers, ext_id_file)]
+
+def delete_user(all_users: Clone, user: Username, email: Email) -> None:
+    # Remove external id
+    for user_external_id_file in get_user_external_id(all_users, user, email):
         git(all_users, ["rm", str(user_external_id_file)])
     commit_and_push(all_users, "Removing external id for user %s" % user, meta_external_ids)
     # Delete user ref
@@ -327,14 +329,13 @@ def main() -> None:
         if not args.all_projects or not args.all_users:
             raise RuntimeError("migrate: needs all-projects and all-users argument")
         migrate(Url(args.all_projects), Url(args.all_users))
-    elif args.action in ("delete-group", "delete-user"):
-        if args.action == "delete-group":
-            if not args.all_users or not args.name:
-                raise RuntimeError("delete-group: needs all-users and name arguments")
-            all_users = mk_clone(Url(args.all_users))
-            delete_group(all_users, args.name)
-        elif args.action == "delete-user":
-            if not args.all_users or not args.name or not args.email:
-                raise RuntimeError("delete-user: needs all-users, name and email arguments")
-            all_users = mk_clone(Url(args.all_users))
-            delete_user(all_users, args.name, args.email)
+    elif args.action == "delete-group":
+        if not args.all_users or not args.name:
+            raise RuntimeError("delete-group: needs all-users and name arguments")
+        all_users = mk_clone(Url(args.all_users))
+        delete_group(all_users, args.name)
+    elif args.action == "delete-user":
+        if not args.all_users or not args.name or not args.email:
+            raise RuntimeError("delete-user: needs all-users, name and email arguments")
+        all_users = mk_clone(Url(args.all_users))
+        delete_user(all_users, Username(args.name), Email(args.email))
