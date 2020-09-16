@@ -35,6 +35,7 @@ meta_external_ids = Ref('refs/meta/external-ids')
 meta_group_names = Ref('refs/meta/group-names')
 scheme_gerrit = ExternalScheme('gerrit')
 scheme_username = ExternalScheme('username')
+scheme_mail = ExternalScheme('mailto')
 
 def mk_clone(url: Url) -> Clone:
     """Clone a project to ~/.cache/pynotedb/"""
@@ -202,7 +203,25 @@ def delete_group(all_users: Clone, group: str) -> None:
     git(all_users, ["rm", str(group_path)])
     commit_and_push(all_users, "Remove group " + group, meta_group_names)
 
-def delete_user(all_users: Clone, user: str) -> None:
+def list_external_ids(all_users: Clone) -> List[Path]:
+    fetch_checkout(all_users, Branch("external_ids"), meta_external_ids)
+    return list(filter(lambda fp: fp.is_file(), ls(all_users)))
+
+def ext_id_match(headers: List[str], ext_id_file: Path) -> bool:
+    ext_id_file_content = ext_id_file.read_text().split('\n')
+    return any(filter(lambda h: h in ext_id_file_content, headers))
+
+def delete_user(all_users: Clone, user: str, email: str) -> None:
+    # Remove external id
+    headers = list(map(lambda sn: external_id_header(sn[0], sn[1]),
+                       [(scheme_mail, email), (scheme_gerrit, user), (scheme_username, user)]))
+    for user_external_id_file in [
+            ext_id_file
+            for ext_id_file in list_external_ids(all_users)
+            if ext_id_match(headers, ext_id_file)]:
+        git(all_users, ["rm", str(user_external_id_file)])
+    commit_and_push(all_users, "Removing external id for user %s" % user, meta_external_ids)
+    # Delete user ref
     user_ref = get_user_ref(all_users, user)
     if not user_ref:
         raise RuntimeError("%s: user doesn't exists!" % user)
@@ -272,6 +291,9 @@ def create_gerrit_external_id(filename: Path) -> None:
             "[externalId \"username:",
             "[externalId \"gerrit:"))
 
+def external_id_header(scheme: ExternalScheme, name: str) -> str:
+    return "[externalId \"%s:%s\"]" % (scheme, name)
+
 def migrate(all_projects_url: Url, all_users_url: Url) -> None:
     """Migrate software factory notedb data from gerrit 2.x"""
     # Ensure admin can push notedb ref
@@ -281,8 +303,7 @@ def migrate(all_projects_url: Url, all_users_url: Url) -> None:
     commit_and_push(all_projects, "Enable admin to push refs", meta_config)
     # Update externalId to use `gerrit` scheme instead of `username`
     all_users = mk_clone(all_users_url)
-    fetch_checkout(all_users, Branch("external_ids"), meta_external_ids)
-    list(map(create_gerrit_external_id, filter(lambda fp: fp.is_file(), ls(all_users))))
+    list(map(create_gerrit_external_id, list_external_ids(all_users)))
     git(all_users, ["add", "."])
     commit_and_push(all_users, "Update external id to gerrit scheme", meta_external_ids)
 
@@ -307,10 +328,13 @@ def main() -> None:
             raise RuntimeError("migrate: needs all-projects and all-users argument")
         migrate(Url(args.all_projects), Url(args.all_users))
     elif args.action in ("delete-group", "delete-user"):
-        if not args.all_users or not args.name:
-            raise RuntimeError("%s: needs all-users and name argument" % args.action)
-        all_users = mk_clone(Url(args.all_users))
         if args.action == "delete-group":
+            if not args.all_users or not args.name:
+                raise RuntimeError("delete-group: needs all-users and name arguments")
+            all_users = mk_clone(Url(args.all_users))
             delete_group(all_users, args.name)
         elif args.action == "delete-user":
-            delete_user(all_users, args.name)
+            if not args.all_users or not args.name or not args.email:
+                raise RuntimeError("delete-user: needs all-users, name and email arguments")
+            all_users = mk_clone(Url(args.all_users))
+            delete_user(all_users, args.name, args.email)

@@ -55,11 +55,11 @@ def check_admin_user_created(test_repo):
 
 
 def check_admin_user_delete(test_repo):
-    pynotedb.delete_user(test_repo, "Administrator")
+    pynotedb.delete_user(test_repo, "Administrator", "admin@localhost")
     if "refs/users/01/1" in pynotedb.git_read(test_repo, ["ls-remote"]):
         raise RuntimeError("Administrator user ref still exists")
     try:
-        pynotedb.delete_user(test_repo, "Administrator")
+        pynotedb.delete_user(test_repo, "Administrator", "admin@localhost")
         raise RuntimeError("Second Administrator deletion should have failed")
     except RuntimeError:
         pass
