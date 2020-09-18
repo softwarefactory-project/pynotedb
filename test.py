@@ -18,7 +18,6 @@ import pynotedb
 from pynotedb.utils import execute
 from pathlib import Path
 
-
 def ensure_git_config():
     os.environ.setdefault("HOME", str(Path("~/").expanduser()))
     if any(map(lambda p: p.expanduser().exists(), [Path("~/.gitconfig"), Path("~/.config/git/config")])):
@@ -56,14 +55,13 @@ def check_admin_user_created(test_repo):
 
 def check_admin_user_delete(test_repo):
     pynotedb.delete_user(test_repo, "Administrator", "admin@localhost")
-    if "refs/users/01/1" in pynotedb.git_read(test_repo, ["ls-remote"]):
+    if "refs/users/01/1" in pynotedb.git_read(pynotedb.mk_clone(test_repo), ["ls-remote"]):
         raise RuntimeError("Administrator user ref still exists")
     try:
         pynotedb.delete_user(test_repo, "Administrator", "admin@localhost")
         raise RuntimeError("Second Administrator deletion should have failed")
     except RuntimeError:
         pass
-
 
 
 def check_delete_group(test_repo, group_name):
@@ -86,7 +84,7 @@ class TestPyNoteDb(unittest.TestCase):
     def test_create_admin_user(self):
         pynotedb.create_admin_user("admin@localhost", "ssh-rsa key", str(self.test_repo))
         check_admin_user_created(self.test_repo)
-        check_admin_user_delete(pynotedb.mk_clone(str(self.test_repo)))
+        check_admin_user_delete(self.test_repo)
 
     def test_add_account_external_id(self):
         repo = pynotedb.mk_clone(str(self.test_repo))
@@ -94,8 +92,25 @@ class TestPyNoteDb(unittest.TestCase):
         pynotedb.add_account_external_id(repo, "john", "42")
 
     def test_delete_group(self):
-        repo = pynotedb.mk_clone(str(self.test_repo))
-        check_delete_group(repo, "test group")
+        check_delete_group(self.test_repo, "test group")
+
+    def test_parser(self):
+        url = "git://gerrit/All-Users.git"
+        path = str(self.test_repo)
+        self.assertIsNotNone(pynotedb.parse_url(url))
+        self.assertRaises(RuntimeError, pynotedb.parse_url, path)
+        self.assertIsNotNone(pynotedb.parse_path(path))
+        self.assertRaises(RuntimeError, pynotedb.parse_path, url)
+        self.assertIsNotNone(pynotedb.parse_url_or_path(url))
+        self.assertIsNotNone(pynotedb.parse_url_or_path(path))
+
+    def test_illegal_actions(self):
+        def fake_args(**kw):
+            return type("argparse.Namespace", (), kw)
+        self.assertRaises(RuntimeError, pynotedb.main_do, fake_args(
+            action="delete-group", name="fake", all_users="git://gerrit/All-Users.git"))
+        self.assertRaises(RuntimeError, pynotedb.main_do, fake_args(
+            action="delete-user", name="fake", email="fake", all_users="git://gerrit/All-Users.git"))
 
 
 if __name__ == '__main__':

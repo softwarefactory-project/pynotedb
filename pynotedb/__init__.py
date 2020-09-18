@@ -13,9 +13,11 @@
 # under the License.
 
 import argparse
+import getpass
+from urllib.parse import urlparse
 from sys import argv
 from pathlib import Path
-from typing import Callable, List, Iterator, NewType, Optional, Tuple
+from typing import Callable, List, Iterator, NewType, Optional, Tuple, Union
 from pynotedb.utils import execute, ls, pread, sha1sum, try_action
 
 
@@ -38,14 +40,37 @@ scheme_gerrit = ExternalScheme('gerrit')
 scheme_username = ExternalScheme('username')
 scheme_mail = ExternalScheme('mailto')
 
-def mk_clone(url: Url) -> Clone:
+def is_mine(directory: Path) -> bool:
+    return directory.owner() == getpass.getuser()
+
+def parse_url(url: str) -> Url:
+    if urlparse(url).scheme not in ('http', 'https', 'git'):
+        raise RuntimeError("%s: expected url" % url)
+    return Url(url)
+
+def parse_path(url: str) -> Path:
+    path = Path(url).resolve()
+    if not path.exists() or not is_mine(path):
+        raise RuntimeError("%s: expected writable directory" % url)
+    return path
+
+def parse_url_or_path(url: str) -> Union[Url, Path]:
+    try:
+        return parse_url(url)
+    except RuntimeError:
+        return parse_path(url)
+
+def strip_git_suffix(url: str) -> str:
+    return url[:-4] if url.endswith(".git") else url
+
+def mk_clone(url: Union[Url, Path]) -> Clone:
     """Clone a project to ~/.cache/pynotedb/"""
-    path = Path("~/.cache/pynotedb/" + (url[:-4] if url.endswith(".git") else url).split('/')[-1]).expanduser()
+    path = Path("~/.cache/pynotedb/" + strip_git_suffix(str(url)).split('/')[-1]).expanduser()
     if not path.exists():
         path.mkdir(parents=True)
-        execute(["git", "clone", url, str(path)])
+        execute(["git", "clone", str(url), str(path)])
     else:
-        execute(["git", "remote", "set-url", "origin", url], cwd=path)
+        execute(["git", "remote", "set-url", "origin", str(url)], cwd=path)
     return Clone(path)
 
 def git(clone: Clone, args: List[str]) -> None:
@@ -195,7 +220,8 @@ def add_account_external_id(all_users: Clone, username: str, account_id: str) ->
     commit_and_push(
         all_users, "Add externalId for user " + username, meta_external_ids)
 
-def delete_group(all_users: Clone, group: str) -> None:
+def delete_group(all_users_path: Path, group: str) -> None:
+    all_users = mk_clone(all_users_path)
     group_path_id = get_group_id(all_users, group)
     if not group_path_id:
         raise RuntimeError("%s: group doesn't exists!" % group)
@@ -218,7 +244,8 @@ def get_user_external_id(all_users: Clone, user: Username, email: Email) -> List
     return [ext_id_file for ext_id_file in list_external_ids(all_users)
             if ext_id_match(headers, ext_id_file)]
 
-def delete_user(all_users: Clone, user: Username, email: Email) -> None:
+def delete_user(all_users_path: Path, user: Username, email: Email) -> None:
+    all_users = mk_clone(all_users_path)
     # Remove external id
     for user_external_id_file in get_user_external_id(all_users, user, email):
         git(all_users, ["rm", str(user_external_id_file)])
@@ -230,7 +257,7 @@ def delete_user(all_users: Clone, user: Username, email: Email) -> None:
     # TODO: delete group membership too?
     git(all_users, ["push", "--delete", "origin", user_ref])
 
-def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Url) -> None:
+def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Union[Url, Path]) -> None:
     """Ensure the admin user is created"""
     all_users = mk_clone(all_users_url)
     admin_ref = mk_user_ref("1")
@@ -296,7 +323,7 @@ def create_gerrit_external_id(filename: Path) -> None:
 def external_id_header(scheme: ExternalScheme, name: str) -> str:
     return "[externalId \"%s:%s\"]" % (scheme, name)
 
-def migrate(all_projects_url: Url, all_users_url: Url) -> None:
+def migrate(all_projects_url: Union[Url, Path], all_users_url: Union[Url, Path]) -> None:
     """Migrate software factory notedb data from gerrit 2.x"""
     # Ensure admin can push notedb ref
     all_projects = mk_clone(all_projects_url)
@@ -320,22 +347,22 @@ def main() -> None:
         parser.add_argument("--all-projects", help="URL of the All-Projects project")
         parser.add_argument("--name", help="The name of the things to delete")
         return parser.parse_args(argv)
-    args = usage(argv[1:])
+    main_do(usage(argv[1:]))
+
+def main_do(args: argparse.Namespace) -> None:
     if args.action == "create-admin-user":
         if not args.email or not args.pubkey or not args.all_users:
             raise RuntimeError("create-admin-user: needs email, pubkey and all-users argument")
-        create_admin_user(Email(args.email), PubKey(args.pubkey), Url(args.all_users))
+        create_admin_user(Email(args.email), PubKey(args.pubkey), parse_url_or_path(args.all_users))
     elif args.action == "migrate":
         if not args.all_projects or not args.all_users:
             raise RuntimeError("migrate: needs all-projects and all-users argument")
-        migrate(Url(args.all_projects), Url(args.all_users))
+        migrate(parse_url_or_path(args.all_projects), parse_url_or_path(args.all_users))
     elif args.action == "delete-group":
         if not args.all_users or not args.name:
             raise RuntimeError("delete-group: needs all-users and name arguments")
-        all_users = mk_clone(Url(args.all_users))
-        delete_group(all_users, args.name)
+        delete_group(parse_path(args.all_users), args.name)
     elif args.action == "delete-user":
         if not args.all_users or not args.name or not args.email:
             raise RuntimeError("delete-user: needs all-users, name and email arguments")
-        all_users = mk_clone(Url(args.all_users))
-        delete_user(all_users, Username(args.name), Email(args.email))
+        delete_user(parse_path(args.all_users), Username(args.name), Email(args.email))
