@@ -18,7 +18,6 @@ import pynotedb
 from pynotedb.utils import execute
 from pathlib import Path
 
-
 def ensure_git_config():
     os.environ.setdefault("HOME", str(Path("~/").expanduser()))
     if any(map(lambda p: p.expanduser().exists(), [Path("~/.gitconfig"), Path("~/.config/git/config")])):
@@ -96,6 +95,16 @@ class TestPyNoteDb(unittest.TestCase):
     def test_delete_group(self):
         repo = pynotedb.mk_clone(str(self.test_repo))
         check_delete_group(repo, "test group")
+
+    def test_action_authorized_on_url(self):
+        self.assertTrue(all([
+            pynotedb.action_authorized_on_url(self.test_repo, 'delete-user'),
+            pynotedb.action_authorized_on_url(self.test_repo, 'delete-group'),
+            pynotedb.action_authorized_on_url('https://test', 'create-admin-user'),
+            not pynotedb.action_authorized_on_url('https://test', 'delete-group'),
+            pynotedb.action_authorized_on_url('https://test', 'migrate'),
+            pynotedb.action_authorized_on_url('https://test', 'create-admin-user'),
+        ]))
 
 
 if __name__ == '__main__':

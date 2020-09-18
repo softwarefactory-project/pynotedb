@@ -13,6 +13,7 @@
 # under the License.
 
 import argparse
+import getpass
 from sys import argv
 from pathlib import Path
 from typing import Callable, List, Iterator, NewType, Optional, Tuple
@@ -29,6 +30,7 @@ Clone = NewType('Clone', Path)
 Branch = NewType('Branch', str)
 Ref = NewType('Ref', str)
 ExternalScheme = NewType('ExternalScheme', str)
+Action = NewType('Action', str)
 
 fetch_head = Ref('FETCH_HEAD')
 meta_config = Ref('refs/meta/config')
@@ -37,6 +39,37 @@ meta_group_names = Ref('refs/meta/group-names')
 scheme_gerrit = ExternalScheme('gerrit')
 scheme_username = ExternalScheme('username')
 scheme_mail = ExternalScheme('mailto')
+
+def is_mine(directory: Path) -> bool:
+    if directory.owner() == getpass.getuser():
+        return True
+    else:
+        return False
+
+def action_authorized_on_url(url: Url, action: Action) -> bool:
+    if str(url).startswith('http') or str(url).startswith('git'):
+        # That's a remote repository, some action cannot be performed
+        if action in ('delete-user', 'delete-group'):
+            return False
+        else:
+            return True
+    else:
+        # Assuming that's a local git repository, we need
+        # to ensure we can safely write content
+        if is_mine(Path(url)):
+            return True
+        else:
+            return False
+
+def action_authorized_on_urls(urls: List[Url], action: Action) -> bool:
+    if all([action_authorized_on_url(url, action) for url in urls]):
+        return True
+    else:
+        return False
+
+def check_action_authorized(urls: List[Url], action: Action) -> None:
+    if not action_authorized_on_urls(urls, action):
+        raise RuntimeError("%s: is not authorized on urls: %s" % (action, urls))
 
 def mk_clone(url: Url) -> Clone:
     """Clone a project to ~/.cache/pynotedb/"""
@@ -324,18 +357,22 @@ def main() -> None:
     if args.action == "create-admin-user":
         if not args.email or not args.pubkey or not args.all_users:
             raise RuntimeError("create-admin-user: needs email, pubkey and all-users argument")
+        check_action_authorized([args.all_users], args.action)
         create_admin_user(Email(args.email), PubKey(args.pubkey), Url(args.all_users))
     elif args.action == "migrate":
         if not args.all_projects or not args.all_users:
             raise RuntimeError("migrate: needs all-projects and all-users argument")
+        check_action_authorized([args.all_users, args.all_projects], args.action)
         migrate(Url(args.all_projects), Url(args.all_users))
     elif args.action == "delete-group":
         if not args.all_users or not args.name:
             raise RuntimeError("delete-group: needs all-users and name arguments")
+        check_action_authorized([args.all_users], args.action)
         all_users = mk_clone(Url(args.all_users))
         delete_group(all_users, args.name)
     elif args.action == "delete-user":
         if not args.all_users or not args.name or not args.email:
             raise RuntimeError("delete-user: needs all-users, name and email arguments")
+        check_action_authorized([args.all_users], args.action)
         all_users = mk_clone(Url(args.all_users))
         delete_user(all_users, Username(args.name), Email(args.email))
