@@ -13,7 +13,7 @@
 # under the License.
 
 import argparse
-import getpass
+import os
 from urllib.parse import urlparse
 from sys import argv
 from pathlib import Path
@@ -41,7 +41,7 @@ scheme_username = ExternalScheme('username')
 scheme_mail = ExternalScheme('mailto')
 
 def is_mine(directory: Path) -> bool:
-    return directory.owner() == getpass.getuser()
+    return os.stat(directory).st_uid == os.getuid()
 
 def parse_url(url: str) -> Url:
     if urlparse(url).scheme not in ('http', 'https', 'git'):
