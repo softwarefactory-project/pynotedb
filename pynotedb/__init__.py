@@ -231,7 +231,8 @@ def delete_group(all_users_path: Path, group: str) -> None:
     commit_and_push(all_users, "Remove group " + group, meta_group_names)
 
 def list_external_ids(all_users: Clone) -> List[Path]:
-    fetch_checkout(all_users, Branch("external_ids"), meta_external_ids)
+    if not try_action(lambda: fetch_checkout(all_users, Branch("external_ids"), meta_external_ids)):
+        return []
     return list(filter(lambda fp: fp.is_file(), ls(all_users)))
 
 def ext_id_match(headers: List[str], ext_id_file: Path) -> bool:
@@ -332,9 +333,9 @@ def migrate(all_projects_url: Union[Url, Path], all_users_url: Union[Url, Path])
     commit_and_push(all_projects, "Enable admin to push refs", meta_config)
     # Update externalId to use `gerrit` scheme instead of `username`
     all_users = mk_clone(all_users_url)
-    list(map(create_gerrit_external_id, list_external_ids(all_users)))
-    git(all_users, ["add", "."])
-    commit_and_push(all_users, "Update external id to gerrit scheme", meta_external_ids)
+    if list(map(create_gerrit_external_id, list_external_ids(all_users))):
+        git(all_users, ["add", "."])
+        commit_and_push(all_users, "Update external id to gerrit scheme", meta_external_ids)
 
 def main() -> None:
     """The CLI entrypoint"""
