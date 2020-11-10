@@ -37,6 +37,7 @@ meta_config = Ref('refs/meta/config')
 meta_external_ids = Ref('refs/meta/external-ids')
 meta_group_names = Ref('refs/meta/group-names')
 scheme_gerrit = ExternalScheme('gerrit')
+scheme_keycloak = ExternalScheme('keycloak')
 scheme_username = ExternalScheme('username')
 scheme_mail = ExternalScheme('mailto')
 
@@ -207,15 +208,15 @@ def write_external_id_file(all_users: Clone, scheme: ExternalScheme, username: s
         ""
     ]))
 
-def write_gerrit_username_id_files(all_users: Clone, username: str, account_id: str) -> None:
+def write_gerrit_username_id_files(all_users: Clone, username: str, account_id: str, scheme: ExternalScheme) -> None:
     """Create a ssh and http account external id"""
-    write_external_id_file(all_users, scheme_gerrit, username, account_id)
+    write_external_id_file(all_users, scheme, username, account_id)
     write_external_id_file(all_users, scheme_username, username, account_id)
 
-def add_account_external_id(all_users: Clone, username: str, account_id: str) -> None:
+def add_account_external_id(all_users: Clone, username: str, account_id: str, scheme: ExternalScheme) -> None:
     """Create an account external id"""
     fetch_checkout(all_users, Branch("ids"), meta_external_ids)
-    write_gerrit_username_id_files(all_users, username, account_id)
+    write_gerrit_username_id_files(all_users, username, account_id, scheme)
     git(all_users, ["add", "."])
     commit_and_push(
         all_users, "Add externalId for user " + username, meta_external_ids)
@@ -258,7 +259,7 @@ def delete_user(all_users_path: Path, user: Username, email: Email) -> None:
     # TODO: delete group membership too?
     git(all_users, ["push", "--delete", "origin", user_ref])
 
-def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Union[Url, Path]) -> None:
+def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Union[Url, Path], scheme: ExternalScheme) -> None:
     """Ensure the admin user is created"""
     all_users = mk_clone(all_users_url)
     admin_ref = mk_user_ref("1")
@@ -285,7 +286,7 @@ def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Union[Url, Pa
         # Create externalId
         if not try_action(lambda: fetch_checkout(all_users, Branch("external_ids"), meta_external_ids)):
             new_orphan(all_users, Branch("external_ids"))
-        write_gerrit_username_id_files(all_users, "admin", "1")
+        write_gerrit_username_id_files(all_users, "admin", "1", scheme)
         (all_users / sha1sum("mailto:" + email)).write_text("\n".join([
             "[externalId \"mailto:" + email + "\"]",
             "\taccountId = 1",
@@ -347,6 +348,9 @@ def main() -> None:
         parser.add_argument("--all-users", help="URL of the All-Users project")
         parser.add_argument("--all-projects", help="URL of the All-Projects project")
         parser.add_argument("--name", help="The name of the things to delete")
+        parser.add_argument("--scheme", help='the auth scheme to use when creating the admin user',
+                            choices=['gerrit', 'keycloak-oauth'],
+                            default='gerrit')
         return parser.parse_args(argv)
     main_do(usage(argv[1:]))
 
@@ -354,7 +358,11 @@ def main_do(args: argparse.Namespace) -> None:
     if args.action == "create-admin-user":
         if not args.email or not args.pubkey or not args.all_users:
             raise RuntimeError("create-admin-user: needs email, pubkey and all-users argument")
-        create_admin_user(Email(args.email), PubKey(args.pubkey), parse_url_or_path(args.all_users))
+        if not args.scheme or args.scheme == 'gerrit':
+            scheme = scheme_gerrit
+        else:
+            scheme = scheme_keycloak
+        create_admin_user(Email(args.email), PubKey(args.pubkey), parse_url_or_path(args.all_users), scheme)
     elif args.action == "migrate":
         if not args.all_projects or not args.all_users:
             raise RuntimeError("migrate: needs all-projects and all-users argument")

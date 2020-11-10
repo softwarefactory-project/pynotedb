@@ -82,14 +82,14 @@ class TestPyNoteDb(unittest.TestCase):
         create_all_users(self.test_repo)
 
     def test_create_admin_user(self):
-        pynotedb.create_admin_user("admin@localhost", "ssh-rsa key", str(self.test_repo))
+        pynotedb.create_admin_user("admin@localhost", "ssh-rsa key", str(self.test_repo), "gerrit")
         check_admin_user_created(self.test_repo)
         check_admin_user_delete(self.test_repo)
 
     def test_add_account_external_id(self):
         repo = pynotedb.mk_clone(str(self.test_repo))
         pynotedb.fetch_checkout(repo, "extids", "refs/meta/external-ids")
-        pynotedb.add_account_external_id(repo, "john", "42")
+        pynotedb.add_account_external_id(repo, "john", "42", "gerrit")
 
     def test_delete_group(self):
         check_delete_group(self.test_repo, "test group")
