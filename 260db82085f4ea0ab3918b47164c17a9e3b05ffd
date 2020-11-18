@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "6fa22a52_83f4eb05",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 212,
+      "author": {
+        "id": 7
+      },
+      "writtenOn": "2020-11-18T20:30:21Z",
+      "side": 0,
+      "message": "I thought gerrit users require a `gerrit` scheme, can the admin log in when using the `keycloak` scheme?",
+      "range": {
+        "startLine": 212,
+        "startChar": 38,
+        "endLine": 212,
+        "endChar": 52
+      },
+      "revId": "260db82085f4ea0ab3918b47164c17a9e3b05ffd",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    }
+  ]
+}
