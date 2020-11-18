@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "526d4676_8ddaae4b",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 351,
+      "author": {
+        "id": 7
+      },
+      "writtenOn": "2020-11-18T20:28:10Z",
+      "side": 1,
+      "message": "nit: use choices\u003d[\"gerrit\", \"keycloak-auth\"]",
+      "range": {
+        "startLine": 351,
+        "startChar": 98,
+        "endLine": 351,
+        "endChar": 150
+      },
+      "revId": "c0de0f7980b57b18e4517366e7feb8b457b8c895",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "b18a650e_9afb150f",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 362,
+      "author": {
+        "id": 7
+      },
+      "writtenOn": "2020-11-18T20:28:10Z",
+      "side": 1,
+      "message": "nit, no need to create the ExternalScheme here, you can use the one defined above, e.g.:\n\n    if not args.scheme or args.scheme \u003d\u003d \u0027gerrit\u0027:\n        scheme \u003d scheme_gerrit\n    else:\n        scheme \u003d scheme_keycloak",
+      "range": {
+        "startLine": 362,
+        "startChar": 11,
+        "endLine": 362,
+        "endChar": 48
+      },
+      "revId": "c0de0f7980b57b18e4517366e7feb8b457b8c895",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    }
+  ]
+}
