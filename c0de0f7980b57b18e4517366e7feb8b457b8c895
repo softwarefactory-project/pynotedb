@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "2ff0a7c0_b975735c",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 351,
+      "author": {
+        "id": 385
+      },
+      "writtenOn": "2020-11-27T10:41:38Z",
+      "side": 1,
+      "message": "\u003e nit: use choices\u003d[\"gerrit\", \"keycloak-auth\"]\n\n+1",
+      "parentUuid": "526d4676_8ddaae4b",
+      "range": {
+        "startLine": 351,
+        "startChar": 98,
+        "endLine": 351,
+        "endChar": 150
+      },
+      "revId": "c0de0f7980b57b18e4517366e7feb8b457b8c895",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b18a650e_9afb150f",
         "filename": "pynotedb/__init__.py",
         "patchSetId": 1
