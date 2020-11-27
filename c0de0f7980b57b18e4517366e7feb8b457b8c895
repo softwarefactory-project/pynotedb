@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "263fa02f_038779a0",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 351,
+      "author": {
+        "id": 68
+      },
+      "writtenOn": "2020-11-27T11:20:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "526d4676_8ddaae4b",
+      "range": {
+        "startLine": 351,
+        "startChar": 98,
+        "endLine": 351,
+        "endChar": 150
+      },
+      "revId": "c0de0f7980b57b18e4517366e7feb8b457b8c895",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "b18a650e_9afb150f",
         "filename": "pynotedb/__init__.py",
         "patchSetId": 1
@@ -60,6 +84,30 @@
       "writtenOn": "2020-11-18T20:28:10Z",
       "side": 1,
       "message": "nit, no need to create the ExternalScheme here, you can use the one defined above, e.g.:\n\n    if not args.scheme or args.scheme \u003d\u003d \u0027gerrit\u0027:\n        scheme \u003d scheme_gerrit\n    else:\n        scheme \u003d scheme_keycloak",
+      "range": {
+        "startLine": 362,
+        "startChar": 11,
+        "endLine": 362,
+        "endChar": 48
+      },
+      "revId": "c0de0f7980b57b18e4517366e7feb8b457b8c895",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "c8e3bfc4_e83149fe",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 1
+      },
+      "lineNbr": 362,
+      "author": {
+        "id": 68
+      },
+      "writtenOn": "2020-11-27T11:20:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b18a650e_9afb150f",
       "range": {
         "startLine": 362,
         "startChar": 11,
