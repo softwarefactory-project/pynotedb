@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "0fc7fe2c_3a6e449b",
+        "filename": "pynotedb/__init__.py",
+        "patchSetId": 3
+      },
+      "lineNbr": 360,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2021-01-06T13:45:24Z",
+      "side": 1,
+      "message": "Why do you do it twice ?",
+      "range": {
+        "startLine": 359,
+        "startChar": 0,
+        "endLine": 360,
+        "endChar": 35
+      },
+      "revId": "5c117a33f48788166716996267a32a2261c57a96",
+      "serverId": "6c1dc8ef-8b94-40e4-bd83-c2359d45ecc0",
+      "unresolved": false
+    }
+  ]
+}
