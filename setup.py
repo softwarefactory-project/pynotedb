@@ -15,10 +15,11 @@
 from setuptools import setup
 
 setup(
-    name='pynotedb',
-    version='0.1.0',
-    packages=['pynotedb'],
-    entry_points = {
-        'console_scripts': ['pynotedb=pynotedb:main']
-    }
+    name="pynotedb",
+    version="0.1.0",
+    packages=["pynotedb"],
+    description="A Gerrit notedb helper library",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    entry_points={"console_scripts": ["pynotedb=pynotedb:main"]},
 )
