@@ -34,7 +34,4 @@ buildDocs =
       pure pdoc3
 
 main :: IO ()
-main = shakeMain $ do
-  want [".zuul.yaml"]
-  ".zuul.yaml" %> dhallZuulAction "(./.sf.dhall).zuul"
-  phony "docs" buildDocs
+main = shakeMain $ phony "docs" buildDocs

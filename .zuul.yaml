@@ -2,7 +2,6 @@
     check:
       jobs:
         - sf-rpm-build
-        - shake-factory-test
         - tox-docs:
             nodeset: python-latest-pod
             vars:
@@ -16,7 +15,6 @@
         - wait-for-changes-ahead:
             dependencies:
               - sf-rpm-build
-              - shake-factory-test
               - tox-docs
               - tox-linters
               - tox-py36
@@ -24,7 +22,6 @@
             dependencies:
               - wait-for-changes-ahead
         - sf-rpm-build
-        - shake-factory-test
         - tox-docs:
             nodeset: python-latest-pod
             vars:
@@ -39,4 +36,8 @@
     release:
       jobs:
         - sf-rpm-publish
-        - upload-pypi
+        - upload-pypi:
+            nodeset:
+              nodes:
+                - name: container
+                  label: zuul-worker-python

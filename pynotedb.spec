@@ -12,6 +12,8 @@ Source0:        https://tarballs.softwarefactory-project.io/%{name}/%{name}-%{ve
 BuildArch:      noarch
 
 Buildrequires:  python3-devel
+Buildrequires:  python3-wheel
+Buildrequires:  python3-setuptools-scm
 
 Requires:       python3
 
@@ -22,10 +24,10 @@ Requires:       python3
 %autosetup -n pynotedb-%{version}
 
 %build
-PBR_VERSION=%{version} %{__python3} setup.py build
+SETUPTOOLS_SCM_PRETEND_VERSION=%{version} %{__python3} setup.py build
 
 %install
-PBR_VERSION=%{version} %{__python3} setup.py install --skip-build --root %{buildroot}
+SETUPTOOLS_SCM_PRETEND_VERSION=%{version} %{__python3} setup.py install --skip-build --root %{buildroot}
 
 %files
 %{python3_sitelib}/*

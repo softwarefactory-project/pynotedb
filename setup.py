@@ -16,8 +16,9 @@ from setuptools import setup
 
 setup(
     name="pynotedb",
-    version="0.1.0",
+    setup_requires=["setuptools_scm"],
     packages=["pynotedb"],
+    use_scm_version=True,
     description="A Gerrit notedb helper library",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
