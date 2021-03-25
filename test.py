@@ -72,6 +72,16 @@ def check_delete_group(test_repo, group_name):
         return
     raise RuntimeError("Second %s group deletion should have failed" % group_name)
 
+def assertEq(note, a, b):
+    if a != b:
+        raise RuntimeError("%s, expected: %s, got: %s" % (note, b, a))
+
+def check_nest_func(test_repo):
+    sha = pynotedb.sha1sum("test")
+    assertEq(
+        "nesting 1 failed",
+        pynotedb.nest_sha(test_repo, sha, 1),
+        (test_repo / sha[:2] / sha[2:]))
 
 class TestPyNoteDb(unittest.TestCase):
     def setUp(self):
@@ -112,6 +122,8 @@ class TestPyNoteDb(unittest.TestCase):
         self.assertRaises(RuntimeError, pynotedb.main_do, fake_args(
             action="delete-user", name="fake", email="fake", all_users="git://gerrit/All-Users.git"))
 
+    def test_sha_nest(self):
+        check_nest_func(self.test_repo)
 
 if __name__ == '__main__':
     unittest.main()

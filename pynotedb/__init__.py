@@ -201,25 +201,56 @@ def get_user_ref(all_users: Clone, user: str) -> Optional[Ref]:
             return user_ref
     return None
 
-def write_external_id_file(all_users: Clone, scheme: ExternalScheme, username: str, account_id: str) -> None:
-    (all_users / sha1sum(scheme + ":" + username)).write_text("\n".join([
+def lookup_sha_nest(root: Clone, sha: str, acc: int) -> Optional[int]:
+    """Count nesting level for a given sha"""
+    if sha == "":
+        # The sha was not found
+        return None
+    if (root / sha).exists():
+        return acc
+    return lookup_sha_nest(root / sha[:2], sha[2:], acc + 1)
+
+def nest_sha(root: Path, sha: str, nest: int) -> Path:
+    """Split a sha for a given nesting level"""
+    if nest == 0:
+        return root / sha
+    return nest_sha(root / sha[:2], sha[2:], nest - 1)
+
+def write_obj(file_path : Path, file_content : List[str]) -> None:
+    """Write a file and ensure parent directory exists"""
+    if not file_path.parent.exists():
+        file_path.parent.mkdir(parents=True)
+    file_path.write_text("\n".join(file_content))
+
+def write_sha_obj(root: Path, sha: str, nest: int, file_content: List[str]) -> None:
+    """Write a sha object by respecting a nest level"""
+    write_obj(nest_sha(root, sha, nest), file_content)
+
+def show_external_id(scheme: ExternalScheme, username: str, account_id: str) -> List[str]:
+    """Return an external id file content"""
+    return [
         "[externalId \"" + scheme + ":" + username + "\"]",
         "\taccountId = " + account_id,
         ""
-    ]))
+    ]
 
 def write_gerrit_username_id_files(all_users: Clone, username: str, account_id: str, scheme: ExternalScheme) -> None:
-    """Create a ssh and http account external id"""
-    write_external_id_file(all_users, scheme, username, account_id)
-    write_external_id_file(all_users, scheme_username, username, account_id)
+    """Create an external id scheme for a given user"""
+    # Lookup if the http external id is already created and get the current nest level
+    http_sha = sha1sum(scheme_username + ":" + username)
+    nest = lookup_sha_nest(all_users, http_sha, 0)
+    if nest is None:
+        nest = 1
+        write_sha_obj(all_users, http_sha, nest, show_external_id(scheme_username, username, account_id))
+    # Then write the desired external id scheme
+    write_sha_obj(all_users, sha1sum(scheme + ":" + username), nest, show_external_id(scheme, username, account_id))
 
 def add_account_external_id(all_users: Clone, username: str, account_id: str, scheme: ExternalScheme) -> None:
     """Create an account external id"""
     fetch_checkout(all_users, Branch("ids"), meta_external_ids)
     write_gerrit_username_id_files(all_users, username, account_id, scheme)
     git(all_users, ["add", "."])
-    commit_and_push(
-        all_users, "Add externalId for user " + username, meta_external_ids)
+    commit_and_push(all_users, "Add externalId for user " + username, meta_external_ids)
 
 def delete_group(all_users_path: Path, group: str) -> None:
     all_users = mk_clone(all_users_path)
@@ -287,12 +318,12 @@ def create_admin_user(email: Email, pubkey: PubKey, all_users_url: Union[Url, Pa
         if not try_action(lambda: fetch_checkout(all_users, Branch("external_ids"), meta_external_ids)):
             new_orphan(all_users, Branch("external_ids"))
         write_gerrit_username_id_files(all_users, "admin", "1", scheme)
-        (all_users / sha1sum("mailto:" + email)).write_text("\n".join([
+        write_sha_obj(all_users, sha1sum("mailto:" + email), 1, [
             "[externalId \"mailto:" + email + "\"]",
             "\taccountId = 1",
             "\temail = " + email,
             ""
-        ]))
+        ])
         git(all_users, ["add", "."])
         commit_and_push(all_users, "Add admin external id", meta_external_ids)
 
