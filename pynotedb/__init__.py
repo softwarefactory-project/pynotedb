@@ -18,7 +18,7 @@ from urllib.parse import urlparse
 from sys import argv
 from pathlib import Path
 from typing import Callable, List, Iterator, NewType, Optional, Tuple, Union
-from pynotedb.utils import execute, ls, pread, sha1sum, try_action
+from pynotedb.utils import execute, ls, lsR, pread, sha1sum, try_action
 
 
 # Create new types to avoid mis-usage
@@ -265,7 +265,7 @@ def delete_group(all_users_path: Path, group: str) -> None:
 def list_external_ids(all_users: Clone) -> List[Path]:
     if not try_action(lambda: fetch_checkout(all_users, Branch("external_ids"), meta_external_ids)):
         return []
-    return list(filter(lambda fp: fp.is_file(), ls(all_users)))
+    return list(filter(lambda fp: fp.is_file(), lsR(all_users)))
 
 def ext_id_match(headers: List[str], ext_id_file: Path) -> bool:
     ext_id_file_content = ext_id_file.read_text().split('\n')

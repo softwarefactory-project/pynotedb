@@ -14,6 +14,7 @@
 
 import subprocess
 import os
+import itertools
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Iterator, TYPE_CHECKING
 from hashlib import sha1
@@ -66,6 +67,15 @@ def try_action(action: Callable[[], None]) -> bool:
 def ls(root: Path) -> Iterator[Path]:
     """List a directory and return absolute path"""
     return map(lambda fn: root / fn, os.listdir(root))
+
+def lsR(root: Path) -> Iterator[Path]:
+    """Recursive list a directory and return absolute path"""
+    return filter(lambda p: ".git" not in p.parts, itertools.chain.from_iterable(
+        map(
+            lambda lsdir: list(map(lambda f: Path(lsdir[0]) / f, lsdir[2])),
+            os.walk(root),
+        )
+    ))
 
 def sha1sum(strdata: str) -> str:
     """Create a sha1
