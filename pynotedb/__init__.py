@@ -13,11 +13,13 @@
 # under the License.
 
 import argparse
+import json
 import os
 from urllib.parse import urlparse
 from sys import argv
 from pathlib import Path
-from typing import Callable, List, Iterator, NewType, Optional, Tuple, Union
+from functools import reduce
+from typing import Callable, List, Iterator, NewType, Optional, Tuple, Union, Dict, Any
 from pynotedb.utils import execute, ls, lsR, pread, sha1sum, try_action
 
 
@@ -391,13 +393,52 @@ def migrate_to_keycloak(all_users_url: Union[Url, Path]) -> None:
        git(all_users, ["add", "."])
        commit_and_push(all_users, "Migrate auth scheme to keycloak", meta_external_ids)
 
+def list_users(all_users_url: Union[Url, Path]) -> List[Dict[Any, Any]]:
+    """List all users currently known to Gerrit."""
+    all_users = mk_clone(all_users_url)
+
+    def extract_user_info(users_dict: Dict[Any, Any], filename: Path) -> Dict[Any, Any]:
+        filecontent = filename.read_text()
+        is_email = [fileline
+                    for fileline in filecontent.split('\n')
+                    if fileline.startswith('\temail = ')]
+        is_accountId = [fileline
+                        for fileline in filecontent.split('\n')
+                        if fileline.startswith('\taccountId = ')]
+        is_username = [fileline
+                       for fileline in filecontent.split('\n')
+                       if fileline.startswith('[externalId "username:')]
+        if is_accountId:
+            accountId = is_accountId[0].split(' = ')[1]
+            if accountId not in users_dict:
+                users_dict[accountId] = {}
+            if is_email:
+                email = is_email[0].split(' = ')[1]
+                users_dict[accountId]['email'] = email
+            if is_username:
+                externalId = is_username[0].split('"')[1]
+                _, username = externalId.split(':', 1)
+                users_dict[accountId]['username'] = username
+        return users_dict
+
+    users_by_id: Dict[Any, Any] = reduce(extract_user_info, list_external_ids(all_users), {})
+    return [
+        {'id': id,
+        'username': users_by_id[id].get('username'),
+        'email': users_by_id[id].get('email')
+        } for id in users_by_id
+    ]
+
+
+
 def main() -> None:
     """The CLI entrypoint"""
     def usage(argv: List[str]) -> argparse.Namespace:
         parser = argparse.ArgumentParser(description="notedb-tools")
         parser.add_argument("action", choices=["create-admin-user", "migrate",
                                                "delete-group", "delete-user",
-                                               "cauth-to-keycloak"])
+                                               "cauth-to-keycloak",
+                                               "list-users"])
         parser.add_argument("--email", help="The user email address")
         parser.add_argument("--pubkey", help="The user SSH public key content")
         parser.add_argument("--all-users", help="URL of the All-Users project")
@@ -434,3 +475,12 @@ def main_do(args: argparse.Namespace) -> None:
         if not args.all_users or not args.name or not args.email:
             raise RuntimeError("delete-user: needs all-users, name and email arguments")
         delete_user(parse_path(args.all_users), Username(args.name), Email(args.email))
+    elif args.action == "list-users":
+        if not args.all_users:
+            raise RuntimeError('list-users: needs all-users argument')
+        print(
+            json.dumps(
+                list_users(parse_path(args.all_users)),
+                indent=2
+            )
+        )

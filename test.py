@@ -94,6 +94,12 @@ class TestPyNoteDb(unittest.TestCase):
     def test_create_admin_user(self):
         pynotedb.create_admin_user("admin@localhost", "ssh-rsa key", str(self.test_repo), "gerrit")
         check_admin_user_created(self.test_repo)
+        users = pynotedb.list_users(self.test_repo)
+        if len(users) != 1:
+            raise RuntimeError("users list should have one element: %s" % users)
+        admin = users[0]
+        if admin['id'] != '1' or admin.get('username') != "admin" or admin.get('email') != 'admin@localhost':
+            raise RuntimeError('invalid admin user info: %s' % admin)
         check_admin_user_delete(self.test_repo)
 
     def test_add_account_external_id(self):

@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from collections import Iterable
 import subprocess
 import os
 import itertools
@@ -27,7 +28,8 @@ else:
 
 def wait_popen(proc: Proc) -> None:
     if proc.wait():
-        raise RuntimeError("%s: failed" % ' '.join(map(str, proc.args)))
+        args = isinstance(proc.args, Iterable) and [str(x) for x in proc.args] or [str(proc.args), ]
+        raise RuntimeError("%s: failed" % ' '.join(args))
 
 def execute(argv: List[str], cwd: Optional[Path] = None) -> None:
     """Execute command, raise an exception if it fails
