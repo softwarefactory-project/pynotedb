@@ -371,6 +371,29 @@ def migrate(all_projects_url: Union[Url, Path], all_users_url: Union[Url, Path])
         git(all_users, ["add", "."])
         commit_and_push(all_users, "Update external id to gerrit scheme", meta_external_ids)
 
+def migrate_su_group(repo_url: Union[Url, Path]) -> None:
+    doc = "Rename 'Non-Interactive Users' group into 'Service Users', as per update to gerrit 3.4"
+    niu = "Non-Interactive Users"
+    su = "Service Users"
+    repo = mk_clone(repo_url)
+    fetch_checkout(repo, Branch("config"), meta_config)
+    dirty = False
+
+    groups = (repo / "groups").read_text()
+    if niu in groups and su not in groups:
+        (repo / "groups").write_text(groups.replace(niu, su))
+        git(repo, ["add", "groups"])
+        dirty = True
+
+    acl = (repo / "project.config").read_text()
+    if niu in acl:
+        (repo / "project.config").write_text(acl.replace(niu, su))
+        git(repo, ["add", "project.config"])
+        dirty = True
+
+    if dirty:
+        commit_and_push(repo, doc, meta_config)
+
 def gerrit_to_kc_external_id(filename: Path) -> None:
     filecontent = filename.read_text()
     is_username = [fileline
@@ -438,9 +461,11 @@ def main() -> None:
         parser.add_argument("action", choices=["create-admin-user", "migrate",
                                                "delete-group", "delete-user",
                                                "cauth-to-keycloak",
+                                               "migrate-group-su",
                                                "list-users"])
         parser.add_argument("--email", help="The user email address")
         parser.add_argument("--pubkey", help="The user SSH public key content")
+        parser.add_argument("--repo", help="The name of the repo to migrate")
         parser.add_argument("--all-users", help="URL of the All-Users project")
         parser.add_argument("--all-projects", help="URL of the All-Projects project")
         parser.add_argument("--name", help="The name of the things to delete")
@@ -463,6 +488,10 @@ def main_do(args: argparse.Namespace) -> None:
         if not args.all_projects or not args.all_users:
             raise RuntimeError("migrate: needs all-projects and all-users argument")
         migrate(parse_url_or_path(args.all_projects), parse_url_or_path(args.all_users))
+    elif args.action == "migrate-group-su":
+        if not args.repo:
+            raise RuntimeError("migrate-group-su: needs repo argument")
+        migrate_su_group(parse_url_or_path(args.repo))
     elif args.action == "cauth-to-keycloak":
         if not args.all_users:
             raise RuntimeError("cauth-to-keycloak: needs all-users argument")
