@@ -394,7 +394,7 @@ def migrate_su_group(repo_url: Union[Url, Path]) -> None:
     if dirty:
         commit_and_push(repo, doc, meta_config)
 
-def gerrit_to_kc_external_id(filename: Path) -> None:
+def gerrit_to_kc_external_id(filename: Path) -> bool:
     filecontent = filename.read_text()
     is_username = [fileline
                    for fileline in filecontent.split('\n')
@@ -402,15 +402,30 @@ def gerrit_to_kc_external_id(filename: Path) -> None:
     if is_username:
         extid = is_username[0].split("\"")[1]
         _scheme, name = extid.split(":", 1)
-        newfilename = filename.parent / sha1sum(scheme_keycloak + ":" + name)
+        checksum = sha1sum(scheme_keycloak + ":" + name)
+        newfilename = filename.parent.parent / checksum[:2] / checksum[2:]
+        newfilename.parents[0].mkdir(parents=True, exist_ok=True)
         newfilename.write_text(filecontent.replace(
             "[externalId \"gerrit:",
             "[externalId \"keycloak-oauth:"))
+        return True
+    return False
+
+def handle_gerrit_to_kc_external_id(all_users: Clone) -> Callable[[Path], None]:
+    def f(filename: Path) -> None:
+        if gerrit_to_kc_external_id(filename):
+            git(all_users, ["rm", str(filename)])
+            try:
+                os.unlink(filename)
+            except:
+                pass
+    return f
 
 def migrate_to_keycloak(all_users_url: Union[Url, Path]) -> None:
     """Migrate users from cauth to keycloak."""
     all_users = mk_clone(all_users_url)
-    if list(map(gerrit_to_kc_external_id, list_external_ids(all_users))):
+    f = handle_gerrit_to_kc_external_id(all_users)
+    if list(map(f, list_external_ids(all_users))):
        # stage new files, deleted files
        git(all_users, ["add", "-u", "."])
        git(all_users, ["add", "."])
