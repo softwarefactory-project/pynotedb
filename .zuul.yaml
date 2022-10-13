@@ -30,9 +30,6 @@
             nodeset: python-latest-pod
         - tox-py36:
             nodeset: python-latest-pod
-    post:
-      jobs:
-        - shake-factory-publish-docs
     release:
       jobs:
         - sf-rpm-publish
