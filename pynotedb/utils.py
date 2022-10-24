@@ -12,7 +12,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-from collections import Iterable
+try:
+    from collections import Iterable
+except ImportError:
+    # python-3.10
+    from collections.abc import Iterable
 import subprocess
 import os
 import itertools
